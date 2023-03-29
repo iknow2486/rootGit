@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.cuckoo.oms.core.mapper.oracle.scm.sch.OrderReqMapper">
+     <!-- 주문수집이력 조회 -->
+     <select id="selectOrderReqList" parameterType="HashMap" resultType="com.cuckoo.oms.core.vo.scm.sch.OrderReqVo"> 
+          SELECT * FROM (
+               SELECT ROWNUM AS NUM
+               , C.SORT_ORDER                                           /* (4) SORT_ORDER 조회 */
+               , C.SCM_CD
+               , C.SCM_NM
+               , C.BUY_COLL_MTH
+               , B.SCM_SEQ
+               , B.SCM_ID
+               , A.JOB_CLS
+               , A.SCH_EXEC_SEQ
+               , A.SCH_ACT_GROUP_SEQ
+               , A.SCH_EXEC_DTTM
+               , CASE WHEN A.SCH_EXEC_REQ_STAT IN ('I', 'R') THEN A.SCH_EXEC_REQ_STAT
+                    WHEN A.SCH_EXEC_REQ_STAT = 'D' THEN A.SCH_EXEC_RES_STAT
+                    ELSE 'E'
+               END AS SCH_EXEC_REQ_STAT
+               , CASE WHEN A.SCH_EXEC_REQ_STAT = 'I' THEN '요청중'
+                    WHEN A.SCH_EXEC_REQ_STAT = 'R' THEN '실행중'
+                    WHEN A.SCH_EXEC_REQ_STAT = 'D' AND A.SCH_EXEC_RES_STAT = 'S' THEN '처리완료'
+                    WHEN A.SCH_EXEC_REQ_STAT = 'D' AND A.SCH_EXEC_RES_STAT = 'E' THEN '오류발생'
+                    ELSE '오류발생'
+               END AS SCH_EXEC_REQ_STAT_NM
+               , A.SCH_EXEC_RES_STAT
+               , (SELECT MAX(SED.SCH_EXEC_DETAIL_SEQ) KEEP(DENSE_RANK FIRST ORDER BY CASE WHEN SED.SCH_EXEC_RES_STAT = 'E' THEN 1 ELSE 2 END, SED.SCH_EXEC_DETAIL_SEQ)
+                  FROM T_SCH_EXEC_DETAIL SED
+                  WHERE SED.SCH_EXEC_SEQ = A.SCH_EXEC_SEQ
+                 ) AS SCH_EXEC_DETAIL_SEQ     
+               , (SELECT MAX(SED.SCH_EXEC_RES_MSG) KEEP(DENSE_RANK FIRST ORDER BY CASE WHEN SED.SCH_EXEC_RES_STAT = 'E' THEN 1 ELSE 2 END, SED.SCH_EXEC_DETAIL_SEQ DESC)
+                  FROM T_SCH_EXEC_DETAIL SED
+                  WHERE SED.SCH_EXEC_SEQ = A.SCH_EXEC_SEQ
+                 ) AS SCH_EXEC_RES_MSG
+               , A.SCH_EXEC_START_DTTM
+               , A.SCH_EXEC_END_DTTM
+               , D.SCH_ACT_GROUP_NM AS SCH_ACT_NM
+               , NULL AS SCH_ACT_TYPE_CODE
+               , NULL AS SCH_ACT_ORDER
+               , NULL AS SCH_ACT_COMMAND
+               , NULL AS SCH_ACT_ATTR1
+               , '주문수집실행' AS REEXEC
+          FROM ( SELECT A.SCH_EXEC_ATTR2 AS SCM_SEQ
+                    , A.SCH_EXEC_ATTR3 AS JOB_CLS
+                    , MAX(A.SCH_EXEC_SEQ) KEEP(DENSE_RANK FIRST ORDER BY A.SCH_EXEC_SEQ DESC) AS SCH_EXEC_SEQ
+                    , A.SCH_ACT_GROUP_SEQ AS SCH_ACT_GROUP_SEQ
+                    , MAX(A.SCH_EXEC_DTTM) KEEP(DENSE_RANK FIRST ORDER BY A.SCH_EXEC_SEQ DESC) AS SCH_EXEC_DTTM
+                    , MAX(A.SCH_EXEC_REQ_STAT) KEEP(DENSE_RANK FIRST ORDER BY A.SCH_EXEC_SEQ DESC) AS SCH_EXEC_REQ_STAT
+                    , MAX(A.SCH_EXEC_RES_STAT) KEEP(DENSE_RANK FIRST ORDER BY A.SCH_EXEC_SEQ DESC) AS SCH_EXEC_RES_STAT
+                    , MAX(A.SCH_EXEC_START_DTTM) KEEP(DENSE_RANK FIRST ORDER BY A.SCH_EXEC_SEQ DESC) AS SCH_EXEC_START_DTTM
+                    , MAX(A.SCH_EXEC_END_DTTM) KEEP(DENSE_RANK FIRST ORDER BY A.SCH_EXEC_SEQ DESC) AS SCH_EXEC_END_DTTM
+                    FROM T_SCH_EXEC A
+                    WHERE 1 = 1
+                    <if test="scmSeq neq null and scmSeq.size!=0">
+                         AND  A.SCH_EXEC_ATTR2 IN
+                         <foreach collection="scmSeq" item="arr" separator="," open="(" close=")">
+                             #{arr}
+                         </foreach>
+                     </if>
+                    AND A.SCH_EXEC_ATTR3 IN ('JOB001', 'JOB002', 'JOB009')   
+                    GROUP BY A.SCH_EXEC_ATTR2
+                         , A.SCH_EXEC_ATTR3
+                         , A.SCH_ACT_GROUP_SEQ
+               ) A
+               , T_SCM_ACCNT_MGMT B
+               , T_SCM_MGMT C
+               , T_SCH_ACT_GROUP D
+          WHERE A.SCM_SEQ = B.SCM_SEQ
+          AND B.COMPANY_ID = #{companyId}
+          AND B.SCM_CD = C.SCM_CD
+          AND D.USE_YN = 'Y'
+          AND A.SCH_ACT_GROUP_SEQ = D.SCH_ACT_GROUP_SEQ
+          UNION ALL
+          SELECT DD.NUM,
+                    DD.SORT_ORDER,
+                    DD.SCM_CD,
+                    DD.SCM_NM,
+                    DD.BUY_COLL_MTH,
+                    DD.SCM_SEQ,
+                    DD.SCM_ID,
+                    DD.JOB_CLS,            
+                    DD.SCG_EXEC_SEQ,
+                    DD.SCH_ACT_GROUP_SEQ,
+                    DD.SCH_EXEC_DTTM,
+                    DD.SCH_EXEC_REQ_STAT,
+                    DD.SCH_EXEC_REQ_STAT_NM,
+                    DD.SCH_EXEC_RES_STAT,
+                    DD.SCH_EXEC_DETAIL_SEQ,
+                    DD.SCH_EXEC_RES_MGS,
+                    DD.SCH_EXEC_START_DTTM,
+                    DD.SCH_EXEC_END_DTTM,
+                    DD.SCH_ACT_NM,
+                    DD.SCH_ACT_TYPE_CODE,
+                    DD.SCH_ACT_ORDER,
+                    DD.SCH_ACT_COMMAND,
+                    DD.SCH_ACT_ATTR1,
+                    DD.REEXEC FROM 
+                    (
+                    select    NULL AS NUM
+                    ,         BB.SORT_ORDER                               /* (1) SORT_ORDER 조회 */
+                    ,         BB.SCM_CD
+                    ,         BB.SCM_NM
+                    ,         BB.BUY_COLL_MTH
+                    ,         AA.SCM_SEQ
+                    ,         CC.SCM_ID
+                    ,         'JOB000'  AS JOB_CLS           
+                    ,         NULL AS SCG_EXEC_SEQ
+                    ,         NULL AS SCH_ACT_GROUP_SEQ
+                    ,         AA.REG_DTTM AS SCH_EXEC_DTTM
+                    ,         'S' AS SCH_EXEC_REQ_STAT
+                    ,         '처리완료' AS SCH_EXEC_REQ_STAT_NM
+                    ,         'S' AS SCH_EXEC_RES_STAT
+                    ,         NULL AS SCH_EXEC_DETAIL_SEQ
+                    ,         '수기업로드완료' AS SCH_EXEC_RES_MGS
+                    ,         AA.REG_DTTM AS SCH_EXEC_START_DTTM
+                    ,         AA.REG_DTTM AS SCH_EXEC_END_DTTM
+                    ,         DECODE(CC.COMPANY_ID,'1','전자','홈시스')|| '-' ||BB.SCM_NM||'-'|| DD.BIZ_NM AS SCH_ACT_NM
+                    ,         NULL AS SCH_ACT_TYPE_CODE
+                    ,         NULL AS SCH_ACT_ORDER
+                    ,         NULL AS SCH_ACT_COMMAND
+                    ,         NULL AS SCH_ACT_ATTR1
+                    ,         '' AS REEXEC
+                    ,         RANK() OVER (PARTITION BY AA.SCM_SEQ,AA.BIZ_CD  ORDER BY AA.MANUAL_RUN_HIST_SEQ DESC ) AS RK  
+                    from T_SCM_MANUAL_RUN_HIST AA
+                    ,    T_SCM_MGMT BB
+                    ,    T_SCM_ACCNT_MGMT CC
+                    ,    T_BIZ_CLS DD
+                    where 1=1
+                    AND  AA.SCM_SEQ = CC.SCM_SEQ
+                    and  BB.SCM_CD = CC.SCM_CD
+                    AND  AA.BIZ_CD = DD.BIZ_CD
+                    <if test="scmSeq neq null and scmSeq.size!=0">
+                    and  AA.SCM_SEQ IN 
+                         <foreach collection="scmSeq" item="arr" separator="," open="(" close=")">
+                             #{arr}
+                         </foreach>
+                    </if>
+                    ORDER BY BB.SORT_ORDER, BB.SCM_CD, BB.SCM_NM        /* (2) ORDER BY를 SORT_ORDER순으로 변경 */
+                    ) DD WHERE DD.RK = 1
+                    GROUP BY 
+                    DD.NUM,
+                    DD.SORT_ORDER,                                      /* (3) SORT_ORDER 조회 */
+                    DD.SCM_CD,
+                    DD.SCM_NM,
+                    DD.BUY_COLL_MTH,
+                    DD.SCM_SEQ,
+                    DD.SCM_ID,
+                    DD.JOB_CLS,            
+                    DD.SCG_EXEC_SEQ,
+                    DD.SCH_ACT_GROUP_SEQ,
+                    DD.SCH_EXEC_DTTM,
+                    DD.SCH_EXEC_REQ_STAT,
+                    DD.SCH_EXEC_REQ_STAT_NM,
+                    DD.SCH_EXEC_RES_STAT,
+                    DD.SCH_EXEC_DETAIL_SEQ,
+                    DD.SCH_EXEC_RES_MGS,
+                    DD.SCH_EXEC_START_DTTM,
+                    DD.SCH_EXEC_END_DTTM,
+                    DD.SCH_ACT_NM,
+                    DD.SCH_ACT_TYPE_CODE,
+                    DD.SCH_ACT_ORDER,
+                    DD.SCH_ACT_COMMAND,
+                    DD.SCH_ACT_ATTR1,
+                    DD.REEXEC
+          ) AAA WHERE 1=1
+          <if test="bizCd neq null and bizCd neq ''">
+               AND  AAA.JOB_CLS = #{bizCd}
+          </if>
+          ORDER BY AAA.SORT_ORDER                                       /* (5) ORDER_BY를 SORT_ORDER순으로 변경 */
+    </select>
+</mapper>
