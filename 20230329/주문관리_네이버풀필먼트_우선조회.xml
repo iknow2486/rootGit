@@ -1,0 +1,414 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.cuckoo.oms.core.mapper.oracle.scm.order.OrderMapper">
+    <!-- 주문목록 조회 -->
+    <select id="selectSaleList" parameterType="HashMap" resultType="com.cuckoo.oms.core.vo.scm.order.OrderVo" fetchSize="1000">
+        WITH BUY_STG AS
+        (
+            SELECT /*+ MATERIALIZE NO_MERGE LEADING(B) */
+                    A.*
+                    , SF_DELIVERY_LIMIT_NM(A.OMS_BUY_NO) AS LIMIT_NM
+                    , B.ETC_ID
+                    , B.SALESREP_ID
+                    , B.VAL1
+                    , B.SCM_ID
+                    , B.CUST_ACCT_SITE_ID
+                    , B.SHIP_TO_SITE_ID
+                    , B.SCM_CD
+                    , B.SCM_NM
+                    , B.DELVRY_DOMESTIC_BUY
+                    , B.FIT_BUY
+                    , B.LOGIS_DOMESTIC_BUY
+                    , B.LOGIS_MVMN_BUY
+                    , B.FIT_DOMESTIC_BUY
+                    , B.FIT_ORDER_YN
+                    , B.NCODE_CONF_YN
+                FROM T_SCM_SLE_ITM_BUY A
+                    , ( SELECT /*+ NO_MERGE LEADING(A B C) */
+                            A.COMPANY_ID
+                            , A.ETC_ID
+                            , A.SALESREP_ID
+                            , B.VAL1
+                            , C.SCM_SEQ
+                            , C.SCM_ID
+                            , C.CUST_ACCT_SITE_ID
+                            , C.SHIP_TO_SITE_ID
+                            , D.SCM_CD
+                            , D.SCM_NM
+                            , D.DELVRY_DOMESTIC_BUY
+                            , D.FIT_BUY
+                            , D.LOGIS_DOMESTIC_BUY
+                            , D.LOGIS_MVMN_BUY
+                            , D.FIT_DOMESTIC_BUY
+                            , D.FIT_ORDER_YN
+                            , D.NCODE_CONF_YN
+                            , D.SORT_ORDER                  /* (1) SORT_ORDER 추가하고 */
+                        FROM T_USER_ERP_IF_INFO A
+                            , T_COMPANY_MGMT B
+                            , T_SCM_ACCNT_MGMT C
+                            , T_SCM_MGMT D
+                        WHERE 1 = 1
+                        AND A.USER_ID = #{loginId}  
+                        AND A.COMPANY_ID = B.COMPANY_ID
+                        AND B.COMPANY_ID = C.COMPANY_ID
+                        AND C.SCM_CD = D.SCM_CD
+                        ORDER BY D.SORT_ORDER               /* (2) ORDER BY를 SORT_ORDER순으로 변경 */
+                    ) B                                     /* (3) 네이버 풀필먼트 SORT_ORDER를 1로 변경 */
+                WHERE 1 = 1
+                AND A.USE_YN = 'Y'
+                AND A.CONFIRM_YN = 'Y'
+                <if test="pageBuyCls neq null and pageBuyCls neq ''">
+                    <if test="pageBuyCls neq null and pageBuyCls neq '' and pageBuyCls eq '01'.toString()">
+                        AND A.BUY_CLS NOT IN (2,5)
+                    </if>
+                    <if test="pageBuyCls neq null and pageBuyCls neq '' and pageBuyCls eq '02'.toString()">
+                        AND A.BUY_CLS IN (2,5)
+                    </if>
+                </if>
+                <if test="topReqStat neq null and topReqStat neq ''">
+                    AND A.REQ_STAT = '99'
+                </if>
+                <if test="topMoveReqStat neq null and topMoveReqStat neq ''">
+                    AND A.REQ_STAT = '99'
+                </if>
+                <if test="topItmNm neq null and topItmNm neq ''">
+                    AND UPPER(A.ITM_NM) LIKE '%' || UPPER(#{topItmNm}) || '%'
+                </if>
+                <if test="topErpItmCd neq null and topErpItmCd neq ''">
+                    AND  UPPER(A.ERP_ITM_CD) LIKE '%' || UPPER(#{topErpItmCd}) || '%'
+                </if>
+                <if test="topScmItmNm neq null and topScmItmNm neq ''">
+                    AND  UPPER(A.SCM_ITM_CD) LIKE '%' || UPPER(#{topScmItmNm}) || '%'
+                </if>
+                <if test="topGoodsNm neq null and topGoodsNm neq ''">
+                    AND  UPPER(A.GOODS_NM) LIKE '%' || UPPER(#{topGoodsNm}) || '%'
+                </if>
+                <if test="selectCstmr neq null and selectCstmr neq '' and selectCstmr eq '01'.toString()" >
+                    <if test="topCstmrNm neq null and topCstmrNm neq ''">
+                        AND  (A.CSTMR_NM LIKE '%' || TRIM(#{topCstmrNm}) || '%' OR A.ORDER_CSTMR_NM LIKE '%' || TRIM(#{topCstmrNm}) || '%')  
+                    </if>
+                </if>   
+                <if test="selectCstmr neq null and selectCstmr neq '' and selectCstmr eq '02'.toString()">
+                    <if test="topCstmrNm neq null and topCstmrNm neq ''">
+                        AND (REPLACE(A.ORDER_TEL_NO,'-','') LIKE '%' || REPLACE(#{topCstmrNm},'-','') || '%' OR REPLACE(A.TEL_NO,'-','') LIKE '%' || REPLACE(#{topCstmrNm},'-','') || '%' OR REPLACE(A.ORDER_MOBILE_NO,'-','') LIKE '%' || REPLACE(#{topCstmrNm},'-','') || '%' OR REPLACE(A.MOBILE_NO,'-','') LIKE '%' || REPLACE(#{topCstmrNm},'-','') || '%')
+                    </if>
+                </if>
+                <if test="topOrderPlaceNm neq null and topOrderPlaceNm neq ''">
+                    AND  A.ORDER_PLACE_NM LIKE '%' || #{topOrderPlaceNm} || '%'
+                </if>
+                <!-- <if test="topLimitYn neq null and topLimitYn neq ''">
+                    AND SF_DELIVERY_LIMIT_CHECK(A.OMS_BUY_NO) = #{topLimitYn}
+                </if> 
+                <if test="topStartDay neq null and topStartDay neq ''">
+                    AND A.BUY_DTTM  <![CDATA[>=]]>  TO_DATE(REPLACE(#{topStartDay}, '-', ''), 'YYYYMMDD')
+                </if>
+                <if test="topEndDay neq null and topEndDay neq ''">
+                    AND A.BUY_DTTM <![CDATA[<]]> TO_DATE(REPLACE(#{topEndDay}, '-', ''), 'YYYYMMDD') + 1
+                </if>-->
+                <if test="selectOrderDt neq null and selectOrderDt neq ''">
+                    <if test="selectOrderDt neq null and selectOrderDt neq '' and selectOrderDt eq '01'.toString()">
+                        <if test="topStartDay neq null and topStartDay neq ''">
+                            AND A.BUY_DTTM  <![CDATA[>=]]>  TO_DATE(REPLACE(#{topStartDay}, '-', ''), 'YYYYMMDD')
+                        </if>
+                    </if>
+                    <if test="selectOrderDt neq null and selectOrderDt neq '' and selectOrderDt eq '02'.toString()">
+                        <if test="topStartDay neq null and topStartDay neq ''">
+                            AND TO_CHAR(A.REG_DTTM,'YYYYMMDD')  <![CDATA[>=]]>   REPLACE(#{topStartDay},'-','')
+                        </if>
+                    </if>
+                </if>
+                <if test="selectOrderDt neq null and selectOrderDt neq ''">
+                    <if test="selectOrderDt neq null and selectOrderDt neq '' and selectOrderDt eq '01'.toString()">
+                        <if test="topEndDay neq null and topEndDay neq ''">
+                            AND A.BUY_DTTM <![CDATA[<]]> TO_DATE(REPLACE(#{topEndDay}, '-', ''), 'YYYYMMDD') + 1
+                        </if>
+                    </if>
+                    <if test="selectOrderDt neq null and selectOrderDt neq '' and selectOrderDt eq '02'.toString()">
+                        <if test="topEndDay neq null and topEndDay neq ''">
+                            AND TO_CHAR(A.REG_DTTM,'YYYYMMDD')   <![CDATA[<=]]>    REPLACE(#{topEndDay},'-','')
+                        </if>
+                    </if>
+                </if>
+                <if test="topScmNm neq null and topScmNm.size!=0">
+                    AND  A.SCM_SEQ IN
+                    <foreach collection="topScmNm" item="arr" separator="," open="(" close=")">
+                        #{arr}
+                    </foreach>
+                </if>
+                <if test="topOmsBuyNo neq null and topOmsBuyNo.size!=0">
+                    AND A.OMS_BUY_NO IN 
+                    <foreach collection="topOmsBuyNo" item="arr" separator="," open="(" close=")">
+                        #{arr}
+                    </foreach>
+                </if>
+                <if test="selectDt neq null and selectDt neq ''">
+                    <if test="selectDt neq null and selectDt neq '' and selectDt eq '01'.toString()">
+                        <if test="topConfirmDt neq null and topConfirmDt neq ''">
+                            AND  SF_BUY_CONFIRM_DT(A.OMS_BUY_NO)  =  #{topConfirmDt}
+                        </if>
+                    </if>
+                    <if test="selectDt neq null and selectDt neq '' and selectDt eq '02'.toString()">
+                        <if test="topConfirmDt neq null and topConfirmDt neq ''">
+                            AND  TO_CHAR(A.REG_DTTM,'YYYYMMDD')  =  REPLACE(#{topConfirmDt},'-','')
+                        </if>
+                    </if>
+                </if>
+                <if test="topScmBuyNo neq null and topScmBuyNo.size!=0">
+                    <foreach collection="topScmBuyNo" item="arr" index="index" open="AND (" close=")" separator=" or ">
+                        <if test="arr neq null and arr neq ''">
+                            A.BUY_ATTR7 like '%' || #{arr} || '%'
+                        </if>
+                    </foreach>
+                </if>
+                <if test="topBuyStat neq null and topBuyStat.size!=0">
+                    AND A.BUY_STAT IN 
+                    <foreach collection="topBuyStat" item="arr" separator="," open="(" close=")">
+                        #{arr}
+                    </foreach>
+                </if>
+                <if test="topMoveBuyStat neq null and topMoveBuyStat.size!=0">
+                    AND A.BUY_STAT IN 
+                    <foreach collection="topMoveBuyStat" item="arr" separator="," open="(" close=")">
+                        #{arr}
+                    </foreach>
+                </if>
+                <if test="topDelvryClsNm neq null and topDelvryClsNm neq ''">
+                    AND A.BUY_ATTR5 = #{topDelvryClsNm} 
+                </if>
+                <if test="topClaimStat neq null and topClaimStat.size!=0">
+                    AND A.CLAIM_STAT IN 
+                    <foreach collection="topClaimStat" item="arr" separator="," open="(" close=")">
+                        #{arr}
+                    </foreach>
+                </if>
+                <if test="topCls neq null and topCls neq ''">
+                    <if test="topCls eq '00'">
+                        AND  A.BUY_ATTR6 IS NULL
+                    </if>
+                </if>
+                <if test="topOrderStatNm neq null and topOrderStatNm.size!=0">
+                    <if test="topCls eq '01'">
+                        AND  (A.BUY_ATTR6 IS NULL OR A.BUY_ATTR6 IN
+                        <foreach collection="topOrderStatNm" item="arr" separator="," open="(" close=")">
+                            #{arr}
+                        </foreach>
+                        )
+                    </if>
+                    <if test="topCls eq '02'">
+                        AND  A.BUY_ATTR6 IN
+                        <foreach collection="topOrderStatNm" item="arr" separator="," open="(" close=")">
+                            #{arr}
+                        </foreach>
+                    </if>
+                </if>
+                <if test='topShipmentCntYn neq null and topShipmentCntYn neq "" and topShipmentCntYn.equals("Y") '>
+                    AND (NVL(A.ORDER_QTY,0)-NVL(A.CONF_QTY,0)) != 0
+                </if>
+                <if test='topShipmentCntYn neq null and topShipmentCntYn neq "" and topShipmentCntYn.equals("N") '>
+                    AND (NVL(A.ORDER_QTY,0)-NVL(A.CONF_QTY,0)) = 0
+                </if>
+                <if test="topStartDelvryReqDay neq null and topStartDelvryReqDay neq ''">
+                    AND A.DELVRY_REQ_DAY  <![CDATA[>=]]>  TO_DATE(REPLACE(#{topStartDelvryReqDay}, '-', ''), 'YYYYMMDD')
+                </if>
+                <if test="topEndDelvryReqDay neq null and topEndDelvryReqDay neq ''">
+                    AND A.DELVRY_REQ_DAY <![CDATA[<]]> TO_DATE(REPLACE(#{topEndDelvryReqDay}, '-', ''), 'YYYYMMDD') + 1
+                </if>
+                <if test="topBuyCls neq null and topBuyCls neq ''">
+                    AND  A.BUY_CLS = #{topBuyCls} 
+                </if>
+                <if test="topDelvryMsg neq null and topDelvryMsg neq ''">
+                    AND  A.DELVRY_MSG LIKE '%' || #{topDelvryMsg} || '%'
+                </if>
+                AND A.COMPANY_ID = B.COMPANY_ID
+                AND A.SCM_SEQ = B.SCM_SEQ
+            ), BUY_DELIVERY AS
+            (
+                SELECT /*+ MATERIALIZE NO_MERGE */
+                       A.OMS_BUY_NO
+                     , MAX(B.CUR_COMPY_CD) KEEP (DENSE_RANK FIRST ORDER BY B.SCM_DELVRY_SEQ DESC) AS CUR_COMPY_CD
+                     , MAX(C.CUR_COMPY_NM) KEEP (DENSE_RANK FIRST ORDER BY B.SCM_DELVRY_SEQ DESC) AS CUR_COMPY_NM
+                     , MAX(B.WAY_BILL_NO) KEEP (DENSE_RANK FIRST ORDER BY B.SCM_DELVRY_SEQ DESC) AS WAY_BILL_NO
+                     , MAX(B.RETURN_BILL_NO) KEEP (DENSE_RANK FIRST ORDER BY B.SCM_DELVRY_SEQ DESC) AS RETURN_BILL_NO
+                  FROM BUY_STG A
+                     , T_SCM_DELVRY_INFO B
+                     , T_CUR_COMPY_MGMT C
+                 WHERE A.COMPANY_ID = B.COMPANY_ID
+                   AND A.OMS_BUY_NO = B.OMS_BUY_NO
+                   AND B.CUR_COMPY_CD = C.CUR_COMPY_CD
+                   <if test="topWayBillNo neq null and topWayBillNo neq ''">
+                   AND REPLACE(B.WAY_BILL_NO,'-','') LIKE '%' || REPLACE(#{topWayBillNo},'-','') || '%'
+                   </if>                   
+                 GROUP BY A.OMS_BUY_NO
+            )
+            SELECT /*+ USE_NL(G) */
+                A.COMPANY_ID
+                , A.SCM_CD
+                , A.SCM_NM
+                , A.SCM_ID
+                , A.ORDER_PLACE_CD
+                , A.ORDER_PLACE_NM
+                , A.OMS_BUY_NO
+                , A.LIMIT_NM
+                , A.BUY_ATTR7 AS SCM_BUY_NO
+                , A.SCM_BUY_NO AS OMS_SCM_BUY_NO
+                , A.SCM_SEQ
+                , A.BUY_CLS
+                , B.OMS_BUY_CLS_NM AS BUY_CLS_NM
+                , B.VAL2 AS API_GB
+                , A.BUY_ATTR5 AS DELVRY_CLS
+                , NVL(SF_GET_COMM_NM('CD0038', A.BUY_ATTR5),'-') AS DELVRY_CLS_NM
+                , A.BUY_STAT
+                , C.OMS_BUY_STAT_NM AS BUY_STAT_NM
+                , A.BUY_DTTM
+                , TO_CHAR(A.BUY_DTTM, 'yyyy-mm-dd HH24:MI:SS') AS BUY_DT
+                , SF_BUY_CONFIRM_DT(A.OMS_BUY_NO) AS CONFIRM_DT
+                , A.SCH_ACTION_ID
+                , NVL(A.REQ_STAT, '-') AS REQ_STAT_CD
+                , NVL(SF_GET_COMM_NM('CD0023', A.REQ_STAT), '-') AS REQ_STAT_NM
+                , NVL(TO_CHAR(A.REQ_DTTM, 'YYYY-MM-DD'), '-') AS REQ_DT
+                , NVL(TO_CHAR(A.REQ_DTTM, 'HH24:MI:SS'), '-') AS REQ_TIME
+                , A.OUT_PLACE_CD
+                , SF_GET_OUT_PLACE_NM(A.OMS_BUY_NO, A.COMPANY_ID) AS OUT_PLACE_NM
+                , A.OMS_ITM_CD
+                , E.OMS_ITM_NM
+                , A.SCM_ITM_CD
+                , F.EXPSR_ITM_NM AS SCM_ITM_NM
+                , NVL(A.ERP_ITM_CD, '-') AS ERP_ITM_CD
+                , NVL(E.ERP_ITM_NM, '-') AS ERP_ITM_NM
+                , A.GOODS_ID AS ERP_GOODS_ID
+                , DECODE(A.GOODS_NM, '', '-', A.GOODS_NM) AS ERP_GOODS_NM
+                , A.ITM_NM
+                , A.OPT_FREE_YN
+                , A.OPT
+                , A.BUY_QTY
+                , NVL(A.BUY_CONF_QTY, A.BUY_QTY) AS BUY_CONF_QTY
+                , NVL(A.CANCEL_QTY, 0) AS CANCEL_QTY
+                , NVL(A.RETURN_QTY, 0) AS RETURN_QTY
+                , NVL(A.ORDER_QTY, 0) AS ORDER_QTY
+                , NVL(A.CONF_QTY, 0) AS CONF_QTY
+                , A.TOT_SLE_AMT
+                , A.APPL_AMT
+                , NVL(A.BUY_CONF_QTY, A.BUY_QTY) * A.APPL_AMT AS TOTAL_AMT
+                , A.ORDER_CSTMR_NM
+                , REPLACE(A.ORDER_MOBILE_NO, '-', '') AS ORDER_MOBILE_NO
+                , REPLACE(A.ORDER_TEL_NO, '-', '') AS ORDER_TEL_NO
+                , A.ORDER_ZIP_NO
+                , NVL(A.ORDER_ADDR, '') AS ORDER_ADDR
+                , NVL(A.ORDER_DTL_ADDR, '') AS ORDER_DTL_ADDR
+                , A.CSTMR_NM
+                , REPLACE(A.MOBILE_NO, '-', '') AS MOBILE_NO
+                , REPLACE(A.TEL_NO, '-', '') AS TEL_NO
+                , A.ZIP_ID
+                , A.ZIP_NO
+                , NVL(A.DELVRY_ADDR, '') AS DELVRY_ADDR
+                , NVL(A.DELVRY_DTL_ADDR, '') AS DELVRY_DTL_ADDR
+                , A.DELVRY_MSG
+                , A.GIFT_YN
+                , A.GIFT_CD
+                , A.DELVRY_REQ_DAY
+                , A.DELVRY_CONF_DAY
+                , A.SELLER_CD
+                , A.SELLER_NM
+                , A.OLD_TRADE_BUY_NO
+                , A.CUR_COMPY_CD
+                , A.CUR_COMPY_NM
+                , A.WAY_BILL_NO
+                , A.RETURN_BILL_NO
+                , A.CONFIRM_YN
+                , A.BARCD
+                , A.REMARK
+                , A.USE_YN
+                , A.REG_ID
+                , A.REG_IP
+                , A.REG_DTTM
+                , '확인' AS ifData
+                , A.VAL1 AS ORG_ID
+                , A.ETC_ID AS ERP_ID
+                , SF_DELIVERY_LIMIT_CHECK(A.OMS_BUY_NO) AS AMT_ERR
+                , SF_GET_CUST_ACCT_SITE_ID(A.SCM_SEQ,'ORDER',A.BUY_ATTR5) AS custAcctSiteId
+                , A.SALESREP_ID
+                , A.COPOR_CLS
+                , SF_GET_COMM_NM('CD0024', A.TRADE_MTH) AS TRADE_MTH
+                , A.JOB_CLS
+                , A.SLE_CLS
+                , SF_GET_COMM_NM('CD0026', A.JOB_CLS) AS JOB_CLS_NM
+                , A.JOLISU_YN
+                , (SELECT GIFT_NM
+                    FROM T_GIFT_MGMT B
+                    WHERE B.GIFT_CD = A.GIFT_CD
+                ) AS GIFT_NM
+                , A.CASE_YN
+                , A.CHARGE_YN
+                , DECODE(A.OMS_ITM_CD, '', 'N', 'Y') AS ITM_CHECK
+                , DECODE(A.BUY_CLS
+                        , '1', A.DELVRY_DOMESTIC_BUY
+                        , '2', A.DELVRY_DOMESTIC_BUY
+                        , '3', A.FIT_BUY
+                        , '4', A.LOGIS_DOMESTIC_BUY
+                        , '5', A.LOGIS_MVMN_BUY
+                        , '8', A.FIT_DOMESTIC_BUY
+                ) AS FLOW_STATUS_CODE
+                , SF_GET_SELF_YN(A.BUY_CLS, E.VAL1) AS SELF_YN
+                , (SELECT MAX(IF_NO3)
+                    FROM T_SCM_DATA_IF_INFO AA
+                    WHERE 1 = 1 
+                    AND A.OMS_BUY_NO = AA.OMS_BUY_NO
+                ) AS LINE_ID
+                , A.FIT_ORDER_YN
+                , SF_RE_ORDER_CHECK(A.OMS_BUY_NO) AS RE_ORDER_YN
+                , CASE WHEN A.BUY_CLS = '3' AND G.OMS_BUY_NO IS NULL THEN '매칭'
+                        WHEN A.BUY_CLS = '3' AND G.OMS_BUY_NO IS NOT NULL THEN TO_CHAR(G.OMS_BUY_NO)
+                        ELSE NULL
+                END AS CASE_BUY_NO
+                , G.CSTMR_NM AS CASE_CSTMR_NM
+                , G.BUY_DTTM AS CASE_BUY_DT
+                , G.SCM_ITM_CD AS CASE_ITM_CD
+                , G.MOBILE_NO AS CASE_MOBILE_NO
+                , G.ZIP_NO || ' ' || G.DELVRY_ADDR || ' ' || G.DELVRY_DTL_ADDR AS CASE_ADDR
+                , A.SHIP_TO_SITE_ID
+                , G.USE_YN AS CASE_BUY_YN
+                , A.NCODE_CONF_YN
+                , A.BUY_ATTR6 AS ORDER_STAT_NM
+             FROM (SELECT /*+ NO_MERGE */
+                          A.*
+                        , B.CUR_COMPY_CD
+                        , B.CUR_COMPY_NM
+                        , B.WAY_BILL_NO
+                        , B.RETURN_BILL_NO
+                     FROM BUY_STG A
+                        , BUY_DELIVERY B
+                    WHERE A.OMS_BUY_NO = B.OMS_BUY_NO (+)
+                  ) A
+                , T_OMS_BUY_CLS B
+                , T_OMS_BUY_STAT C            
+                , T_OMS_ITM_MST E
+                , T_SCM_ITM_MST F
+                , T_SCM_SLE_ITM_BUY G
+            WHERE 1 = 1
+            AND A.BUY_CLS = B.OMS_BUY_CLS_SEQ
+            AND A.BUY_STAT = C.OMS_BUY_STAT
+            AND A.OMS_ITM_CD = E.OMS_ITM_CD (+)
+            AND NVL(A.GOODS_ID, '*') = NVL(E.GOODS_ID (+), '*')
+            AND A.COMPANY_ID = F.COMPANY_ID (+)
+            AND A.SCM_SEQ = F.SCM_SEQ (+)
+            AND A.OMS_ITM_CD = F.OMS_ITM_CD (+)
+            AND A.SCM_ITM_CD = F.SCM_ITM_CD (+)
+            AND TO_NUMBER(A.BUY_ATTR2) = G.OMS_BUY_NO (+)
+            <if test="topErpItmNm neq null and topErpItmNm neq ''">
+                AND  UPPER(E.ERP_ITM_NM) LIKE '%' || UPPER(#{topErpItmNm}) || '%'
+            </if>
+            <if test="topProductYn neq null and topProductYn neq ''">
+                AND  F.ATTR2 = #{topProductYn}
+            </if>
+            <if test="topWayBillNo neq null and topWayBillNo neq ''">
+                AND  REPLACE(A.WAY_BILL_NO,'-','') LIKE '%' || REPLACE(#{topWayBillNo},'-','') || '%'
+            </if>
+            <if test="topLimitCls neq null and topLimitCls.size!=0">
+                <foreach collection="topLimitCls" item="arr" index="index" open="AND (" close=")" separator=" or ">
+                    <if test="arr neq null and arr neq ''">
+                        A.LIMIT_NM like '%' || #{arr} || '%'
+                    </if>
+                </foreach>
+            </if>
+    </select>
+</mapper>
