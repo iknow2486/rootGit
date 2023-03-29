@@ -34,7 +34,7 @@ scraper.tmon = {
             }
 
             // 주문구분별 리스트 재할당
-            // await cAPI.addData("curCompy", curCompy);
+            // await cAPI.addData("curCompy", curCompy);                    // 기존 코드
             scraper.setItem("iOrderList", iOrderList);
 
             await cAPI.resume();
