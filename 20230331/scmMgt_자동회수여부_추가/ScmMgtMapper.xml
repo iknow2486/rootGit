@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.cuckoo.oms.core.mapper.oracle.system.ScmMgtMapper">
+    <!-- SCM 목록 그리드 : 조회 -->
+    <select id="scmListGrid" resultType="com.cuckoo.oms.core.vo.system.ScmMgtVo">
+        SELECT    SCM_NM
+        ,         SCM_CD 
+        ,         SCM_CLS
+        ,         IF_MTH
+        ,         ADIT_CONFIRM
+        ,         OVLAP_LOGIN_YN
+        ,         BUY_COLL_MTH
+        ,         ITM_CODING
+        ,         DELVRY_TMPLAT
+        ,         API_OFR
+        ,         CTGRY
+        ,         REMARK_CONF_YN
+        ,         NCODE_CONF_YN
+        ,         DELVRY_DOMESTIC_BUY
+        ,         DELVRY_MVMN_BUY
+        ,         PACKING_MGMT_YN
+        ,         FIT_BUY
+        ,         LOGIS_DOMESTIC_BUY
+        ,         LOGIS_MVMN_BUY
+        ,         FIT_DOMESTIC_BUY
+        ,         FIT_ORDER_YN
+        ,         AUTO_WAYBILL_SAND_YN
+        ,         AUTO_RETURN_YN                                                <!-- 2023년 03월 31일 자동회수여부 추가 -->
+        ,         USE_YN
+        FROM      T_SCM_MGMT
+        WHERE     1=1
+        AND       USE_YN = 'Y'
+        AND       SCM_NM LIKE '%' || #{scmNm} || '%'
+        <if test="itmCoding neq null and itmCoding neq ''">
+        AND       ITM_CODING = #{itmCoding}
+        </if>
+        <if test="delvryTmplat neq null and delvryTmplat neq ''">
+        AND       DELVRY_TMPLAT = #{delvryTmplat}
+        </if>
+        <if test="ctgry neq null and ctgry neq ''">
+        AND       CTGRY = #{ctgry}
+        </if>
+        <if test="scmCls neq null and scmCls neq ''">
+        AND       SCM_CLS = #{scmCls}
+        </if>
+        <if test="apiOfr neq null and apiOfr neq ''">
+        AND       API_OFR = #{apiOfr}
+        </if>
+        <if test="ifMth neq null and ifMth neq ''">
+        AND       IF_MTH = #{ifMth}
+        </if>
+        <if test="useYn neq null and useYn neq ''">
+        AND       USE_YN = #{useYn}
+        </if>
+        ORDER BY  SCM_CD
+    </select>
+
+    <!-- SCM 목록 그리드 : 저장 : 신규/수정 -->
+    <update id="save_scmListGrid" parameterType="com.cuckoo.oms.core.vo.system.ScmMgtVo">
+        MERGE INTO T_SCM_MGMT
+            USING DUAL ON (SCM_CD = #{scmCd})
+                WHEN MATCHED THEN
+                    UPDATE SET
+                        SCM_NM                  = #{scmNm}
+                    , SCM_CLS                 = #{scmCls}
+                    , IF_MTH                  = #{ifMth}
+                    , ADIT_CONFIRM            = #{aditConfirm}
+                    , OVLAP_LOGIN_YN          = #{ovlapLoginYn}
+                    , BUY_COLL_MTH            = #{buyCollMth}
+                    , ITM_CODING              = #{itmCoding}
+                    , DELVRY_TMPLAT           = #{delvryTmplat}
+                    , API_OFR                 = #{apiOfr}
+                    , CTGRY                   = #{ctgry}
+                    , REMARK_CONF_YN          = #{remarkConfYn}
+                    , NCODE_CONF_YN           = #{ncodeConfYn}
+                    , DELVRY_DOMESTIC_BUY     = #{delvryDomesticBuy}
+                    , DELVRY_MVMN_BUY         = #{delvryMvmnBuy}
+                    , PACKING_MGMT_YN         = #{packingMgmtYn}
+                    , FIT_BUY                 = #{fitBuy}
+                    , LOGIS_DOMESTIC_BUY      = #{logisDomesticBuy}
+                    , LOGIS_MVMN_BUY          = #{logisMvmnBuy}
+                    , FIT_DOMESTIC_BUY        = #{fitDomesticBuy}
+                    , FIT_ORDER_YN            = #{fitOrderYn}
+                    , AUTO_WAYBILL_SAND_YN    = #{autoWaybillSandYn}
+                    , AUTO_RETURN_YN          = #{autoReturnYn}                  <!-- 2023년 03월 31일 자동회수여부 추가 -->
+                    , USE_YN                  = #{useYn}
+                    , UPD_ID                  = #{updId}
+                    , UPD_IP                  = #{updIp}
+                    , UPD_DTTM                =  SYSDATE
+                WHEN NOT MATCHED THEN
+                    INSERT (
+                        SCM_CD
+                      , SCM_NM
+                      , SCM_CLS
+                      , IF_MTH
+                      , ADIT_CONFIRM
+                      , OVLAP_LOGIN_YN
+                      , BUY_COLL_MTH
+                      , ITM_CODING
+                      , DELVRY_TMPLAT
+                      , API_OFR
+                      , CTGRY
+                      , REMARK_CONF_YN
+                      , NCODE_CONF_YN
+                      , DELVRY_DOMESTIC_BUY
+                      , DELVRY_MVMN_BUY
+                      , PACKING_MGMT_YN
+                      , FIT_BUY
+                      , LOGIS_DOMESTIC_BUY
+                      , LOGIS_MVMN_BUY
+                      , FIT_DOMESTIC_BUY
+                      , FIT_ORDER_YN
+                      , AUTO_WAYBILL_SAND_YN
+                      , AUTO_RETURN_YN                                            <!-- 2023년 03월 31일 자동회수여부 추가 -->
+                      , USE_YN
+                      , REG_ID
+                      , REG_IP
+                      , REG_DTTM
+                    ) 
+                    VALUES (
+                          SF_GET_SCM_CD  
+                        , #{scmNm}
+                        , #{scmCls}
+                        , #{ifMth}
+                        , #{aditConfirm}
+                        , #{ovlapLoginYn}
+                        , #{buyCollMth}
+                        , #{itmCoding}
+                        , #{delvryTmplat}
+                        , #{apiOfr}
+                        , #{ctgry}
+                        , #{remarkConfYn}
+                        , #{ncodeConfYn}
+                        , #{delvryDomesticBuy}
+                        , #{delvryMvmnBuy}
+                        , #{packingMgmtYn}
+                        , #{fitBuy}
+                        , #{logisDomesticBuy}
+                        , #{logisMvmnBuy}
+                        , #{fitDomesticBuy}
+                        , #{fitOrderYn}
+                        , #{autoWaybillSandYn}
+                        , #{autoReturnYn}                                         <!-- 2023년 03월 31일 자동회수여부 추가 -->
+                        , #{useYn}
+                        , #{regId}
+                        , #{regIp}
+                        , sysdate
+                    )
+    </update>
+
+    <!-- SCM 삭제하기 전 가능 유무 체크  -->
+    <select id="del_scmListGridCheck" parameterType="com.cuckoo.oms.core.vo.system.ScmMgtVo" resultType="String">
+        SELECT COUNT(1) AS CNT FROM T_SCM_ACCNT_MGMT
+        WHERE SCM_CD = #{scmCd}
+    </select>
+
+    <!-- SCM 목록 그리드 : 삭제 -->
+    <delete id="del_scmListGrid" parameterType="com.cuckoo.oms.core.vo.system.ScmMgtVo">
+        DELETE FROM T_SCM_MGMT
+        WHERE SCM_CD = #{scmCd}
+    </delete>
+
+    <!-- SCM 목록 그리드 : SCM 구분 셀렉트 박스 -->
+    <select id="scmClsList" resultType="com.cuckoo.oms.core.vo.system.ScmMgtVo">
+        SELECT DISTINCT CD, CD_NM
+        FROM T_COMMCD_MGMT
+        WHERE 1=1
+        AND UP_CD = 'CD0002'
+        ORDER BY CD
+    </select>
+
+    <!-- SCM 목록 그리드 : 연동 방법 셀렉트 박스 -->
+    <select id="ifMthList" resultType="com.cuckoo.oms.core.vo.system.ScmMgtVo">
+        SELECT DISTINCT CD, CD_NM
+        FROM T_COMMCD_MGMT
+        WHERE 1=1
+        AND UP_CD = 'CD0003'
+        ORDER BY CD
+    </select>
+
+    <!-- SCM 목록 그리드 : 추가 인증 셀렉트 박스 -->
+    <select id="aditConfirmList" resultType="com.cuckoo.oms.core.vo.system.ScmMgtVo">
+        SELECT DISTINCT CD, CD_NM
+        FROM T_COMMCD_MGMT
+        WHERE 1=1
+        AND UP_CD = 'CD0031'
+        ORDER BY CD
+    </select>
+
+    <!-- SCM 목록 그리드 : 셀렉트 박스 : 사용 여부 -->
+    <select id="useYnList" resultType="com.cuckoo.oms.core.vo.system.ScmMgtVo">
+        SELECT DISTINCT CD, CD_NM
+        FROM T_COMMCD_MGMT
+        WHERE 1=1
+        AND UP_CD = 'CD0010'
+        ORDER BY CD
+    </select>
+
+</mapper>
