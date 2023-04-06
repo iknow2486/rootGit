@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ko"
+    xmlns:th="http://www.thymeleaf.org" 
+    xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    data-layout-decorate="~{/layout/pageLayout}">
+<head>
+    <th:block layout:fragment="style">
+        <style>
+        </style>
+    </th:block>
+</head>
+<body>
+    <th:block layout:fragment="content" class="schMgt">
+
+        <div class="rs-row mb-10 pt-2">
+            <!-- 즐겨찾기 등... -->
+            <div class="rs-col-6">
+                <button class="rs-btn rs-btn-outline-light rs-btn-icon bookmark"><i class="far fa-star"></i></button>
+                <button class="rs-btn rs-btn-outline-light rs-btn-icon refresh"><i class="fas fa-redo-alt"></i></button>
+            </div>
+            <!-- 버튼 -->
+            <div class="rs-col-6 ta-r">
+                <button class="rs-btn rs-btn-outline-primary" name="btn_schMgtSave">저장</button>
+                <button class="rs-btn rs-btn-primary" name="btn_schMgtSearch">조회</button>
+            </div>
+        </div>
+
+        <!-- 검색 조건 -->
+        <div class="rs-form-wrap" data-area="search_area_schMgtListGrid">
+            <div class="rs-form">
+                <div class="rs-row">
+                    <div class="rs-col-2">
+                        <div class="rs-control">
+                            <label>스케줄 명</label>
+                            <input type="text" class="rs-text" name="schNm" autocomplete="off">
+                        </div>
+                    </div>
+                    <div class="rs-col-2">
+                        <div class="rs-control">
+                            <label>업무코드</label>
+                            <select class="rs-select" name="bizList" multiple></select>
+                        </div>
+                    </div>
+                    <div class="rs-col-2">
+                        <div class="rs-control">
+                            <label>사용여부</label>
+                            <select class="rs-select" name="useYn"></select>
+                        </div>
+                    </div>
+                    <div class="rs-col-2">
+                        <div class="rs-control">
+                            <label>스케줄 타입</label>
+                            <select class="rs-select" name="schType"></select>
+                        </div>
+                    </div>
+                    <div class="rs-col-2">
+                        <div class="rs-control">
+                            <label>스케줄 구분</label>
+                            <select class="rs-select" name="schActGroupAttr1"></select>
+                        </div>
+                    </div>
+                    <div class="rs-col-2 d-n" name="seachList">
+                        <div class="rs-control">
+                            <label>계정 선택</label>
+                            <select class="rs-select d-n" name="scmList" multiple></select>
+                            <select class="rs-select d-n" name="deliveryList" multiple></select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="rs-row">
+            <div class="rs-col-6">
+                <div class="grid-title">
+                    <i class="far fa-dot-circle"></i> 스케줄 목록
+                </div>
+            </div>
+            <div class="rs-col-6 ta-r">
+                <button class="rs-btn rs-btn-outline-primary" name="btn_schMgtDel">삭제</button>
+                <button class="rs-btn rs-btn-outline-primary" name="btn_schMgtAdd">추가</button>
+            </div>
+        </div>
+        <div id="schMgtListGrid" data-area="grid" class="fill"></div>
+
+    </th:block>
+    <th:block layout:fragment="script">
+        <script type="text/javascript" th:src="@{/js/system/schMgt.js}"></script>
+    </th:block>
+</body>
+</html>

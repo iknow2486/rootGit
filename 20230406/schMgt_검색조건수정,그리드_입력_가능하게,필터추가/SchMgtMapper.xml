@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.cuckoo.oms.core.mapper.oracle.system.SchMgtMapper">
+    <!-- 스케줄 목록 그리드 : 조회 -->
+    <select id="select_schMgt" parameterType="HashMap" resultType="com.cuckoo.oms.core.vo.system.SchMgtVo">
+        SELECT A.SCH_SEQ
+             , A.SCH_NM
+             , A.SCH_TYPE
+             , A.SCH_VALUE
+             , A.SCH_START_TIME
+             , A.SCH_END_TIME
+             , A.SCH_ACTIVE_START_DT
+             , A.SCH_ACTIVE_END_DT
+             , A.SCH_ACT_GROUP_SEQ
+             , B.SCH_ACT_GROUP_NM
+             , B.SCH_ACT_GROUP_ATTR1
+             , B.SCH_ACT_GROUP_ATTR2
+             , A.USE_YN
+             , A.SCH_ATTR1
+             , A.SCH_ATTR2
+             , A.SCH_ATTR3
+             , A.SCH_ATTR4
+             , A.SCH_ATTR5
+        FROM T_SCH_MGMT A, T_SCH_ACT_GROUP B, T_SCM_ACCNT_MGMT C
+        WHERE 1=1
+        AND A.SCH_ACT_GROUP_SEQ = B.SCH_ACT_GROUP_SEQ
+        AND B.SCH_ACT_GROUP_ATTR2 = C.SCM_SEQ(+)
+        <if test="schNm neq null and schNm neq ''">
+        AND A.SCH_NM LIKE '%' || #{schNm} || '%'
+        </if>
+        <if test="schActGroupAttr1 neq null and schActGroupAttr1 neq ''">
+        AND B.SCH_ACT_GROUP_ATTR1 = #{schActGroupAttr1}
+        </if>
+        <if test="scmList neq null and scmList.size != 0">
+            AND B.SCH_ACT_GROUP_ATTR2 IN
+            <foreach collection="scmList" item="arr" separator="," open="(" close=")">
+                #{arr}
+            </foreach>
+        </if>
+        <if test="deliveryList neq null and deliveryList.size != 0">
+            AND B.SCH_ACT_GROUP_ATTR2 IN
+            <foreach collection="deliveryList" item="arr" separator="," open="(" close=")">
+                #{arr}
+            </foreach>
+        </if>
+        <if test="schType neq null and schType neq ''">
+        AND A.SCH_TYPE = #{schType}
+        </if>
+        <if test="bizList neq null and bizList.size != 0">
+            AND B.SCH_ACT_GROUP_ATTR3 IN
+            <foreach collection="bizList" item="arr" separator="," open="(" close=")">
+                #{arr}
+            </foreach>
+        </if>
+        <!-- 2023년 4월 6일 추가 -->
+        <if test="useYn neq null and useYn neq ''">
+            AND A.USE_YN = #{useYn}
+        </if>
+        ORDER BY C.SCM_SEQ, A.SCH_SEQ
+    </select>
+</mapper>
