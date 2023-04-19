@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ko"
+    xmlns:th="http://www.thymeleaf.org" 
+    xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    data-layout-decorate="~{/layout/pageLayout}">
+<head>
+    <th:block layout:fragment="style">
+    </th:block>
+</head>
+<body>
+    <th:block layout:fragment="content" class="scmMgt">
+        <div class="rs-row mb-10 pt-2">
+            <!-- 즐겨찾기 등... -->
+            <div class="rs-col-6">
+                <button class="rs-btn rs-btn-outline-light rs-btn-icon bookmark"><i class="far fa-star"></i></button>
+                <button class="rs-btn rs-btn-outline-light rs-btn-icon refresh"><i class="fas fa-redo-alt"></i></button>
+            </div>
+            <!-- 버튼 -->
+            <div class="rs-col-6 ta-r">
+                <button class="rs-btn rs-btn-outline-primary" name="btn_scmMgtSave">저장</button>
+                <button class="rs-btn rs-btn-primary" name="btn_scmMgtSearch">조회</button>
+            </div>
+        </div>
+
+        <!-- 검색 조건 -->
+        <div id="search_scmListGrid">
+            <div class="rs-form-wrap" data-area="search_area_scmListGrid">
+                <table class="rs-search-form" style="table-layout: fixed;">                                       <!-- 스타일 추가 -->
+                    <tr>
+                        <th class="w-80">SCM 명</th>
+                        <td class="w-240"><select class="rs-select" name="scmCdList" multiple></select></td>      <!-- scm 검색할 때 input -> select로 변경 --> 
+                        <th class="w-120">코딩관리</th>
+                        <td class="w-240"><select class="rs-select" name="itmCoding"></select></td>
+                        <th class="w-120">배송템플릿관리</th>
+                        <td class="w-240"><select class="rs-select" name="delvryTmplat"></select></td>
+                        <th class="w-120">카테고리관리</th>
+                        <td class="w-240"><select class="rs-select" name="ctgry"></select></td>
+                    </tr>
+                    <tr>
+                        <th>SCM 구분</th>
+                        <td><select class="rs-select" name="scmCls"></select></td>
+                        <th>API 제공</th>
+                        <td><select class="rs-select" name="apiOfr"></select></td>
+                        <th>연동방법</th>
+                        <td><select class="rs-select" name="ifMth"></select></td>
+                        <th>사용여부</th>
+                        <td><select class="rs-select" name="useYn"></select></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        <div class="rs-row">
+            <div class="rs-col-6">
+                <div class="grid-title">
+                    <i class="far fa-dot-circle"></i> SCM 목록
+                </div>
+            </div>
+            <div class="rs-col-6 ta-r">
+                <button class="rs-btn rs-btn-outline-primary" name="btn_scmMgtDel">삭제</button>
+                <button class="rs-btn rs-btn-outline-primary" name="btn_scmMgtAdd">추가</button>
+            </div>
+        </div>
+        <div id="scmListGrid" data-area="grid" class="fill"></div>
+
+    </th:block>
+    <th:block layout:fragment="script">
+        <script type="text/javascript" th:src="@{/js/system/scmMgt.js}"></script>
+    <th:block>
+</body>
+</html>
